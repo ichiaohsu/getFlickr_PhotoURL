@@ -5,11 +5,21 @@ import oauth
 import re
 import json
 
-class flickrAPI(object):
+def getToken():
+	result = dict()
+
+	fp = open("token")
+
+	result["token"] = fp.readline().rstrip('\n')
+	result["token_secret"] = fp.readline()
+	
+	fp.close()
+	return result
+
+class flickrInit(object):
 
 	keys = dict()
 	tokens = dict()
-	apitokens = dict()
 
 	def __init__(self):
 		
@@ -79,20 +89,33 @@ class flickrAPI(object):
 		print defaults
 		print
 
-		self.apitokens["oauth_token"] = defaults["oauth_token"]
-		self.apitokens["oauth_token_secret"] = defaults["oauth_token_secret"]
+		self.tokens["oauth_token"] = defaults["oauth_token"]
+		self.tokens["oauth_token_secret"] = defaults["oauth_token_secret"]
 
-	def get_info(self):
+		with open('token', 'w') as f:
+			f.write(self.tokens['oauth_token'] + '\n')
+			f.write(self.tokens['oauth_token_secret'])
+		f.closed
+
+	def get_keys(self):
 		print "keys:", self.keys
-		print "tokens: ", self.apitokens
+		return self.keys
+
+	def get_tokens(self):
+		print "tokens: ", self.tokens
 	
-	"""
-	def set_Method(self,nojsoncallback=True,format='json',parameters=None):
+class photosets(object):
+
+	def __init__(self, nojsoncallback=True, format='json', parameters=None):
+
+		self.keys = hidden.keys()
+		self.tokenfile = getToken()
+
+		print self.keys
+		print self.tokenfile
 
 		self.consumer = oauth.OAuthConsumer(self.keys["oauth_consumer_key"], self.keys["oauth_consumer_secret"])
-		self.tokens = oauth.OAuthToken(self.apitokens["oauth_token"], self.apitokens["oauth_token_secret"])
-		print "self.consumer: ", self.consumer
-		print "self.tokens: ", self.tokens
+		self.token = oauth.OAuthToken(self.tokenfile["token"], self.tokenfile["token_secret"])
 
 		if nojsoncallback:
 			self.nojsoncallback = 1
@@ -101,34 +124,43 @@ class flickrAPI(object):
 		if not parameters:
 			parameters = {}
 
-        #self.url = "http://api.flickr.com/services/rest"
+		self.url = "https://api.flickr.com/services/rest"
 
-        
-        defaults = {
-            'format':format,
-            'nojsoncallback':self.nojsoncallback,
-            'signature_method': "HMAC-SHA1",
-            'oauth_token':self.tokens.key,
-            'oauth_consumer_key':self.consumer.key,
-        }
+		defaults = {
+			"format": format,
+			"nojsoncallback": self.nojsoncallback,
+			"oauth_timestamp": oauth.generate_timestamp(),
+			"oauth_nonce": oauth.generate_nonce(),
+			"signature_method": "HMAC-SHA1",
+			"oauth_token": self.token.key,
+			"api_key": self.consumer.key
+		}
 
-        defaults.update(parameters)
-        self.parameters = defaults
+		print "defaults: ", defaults
 
-    def flickr_calls(self):
-    	uniques = {
-    		"oauth_timestamp": oauth.generate_timestamp(),
-    		"oauth_nonce": oauth.generate_nonce()
-    		}
+		self.parameters = defaults
 
-    	self.parameters.update(uniques)
-    	#req = oauth.Request(method="GET", url=self.url, parameters=self.parameters)
-    	req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=self.parameters)
-    	# Create signature
-    	req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.tokens)
-    	req_url = req.to_url()
-    	data = urllib.urlopen(req_url).read()
-    	
-    	print data
+	def getSizes(self, photo_id, size):
 
-"""
+		p = {
+			"method": "flickr.photos.getSizes",
+			"photo_id": str(photo_id)
+		}
+
+		self.parameters.update(p)
+
+		print self.parameters
+
+		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=self.parameters)
+		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
+
+		url = req.to_url()
+		print "url:", url
+		data = urllib.urlopen(url).read()
+
+		js = json.loads(data)
+		for item in js["sizes"]["size"]:
+			if int(item["width"]) == size:
+				result_url = item["source"]
+		else:
+			return result_url
