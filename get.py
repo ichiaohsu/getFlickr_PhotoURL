@@ -14,4 +14,4 @@ user_id = raw_input("Enter user id - ")
 #print url
 
 photolist = getflickr.get_photoset_List(user_id,1,2)
-
+print photolist

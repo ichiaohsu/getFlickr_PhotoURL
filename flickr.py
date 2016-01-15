@@ -27,6 +27,7 @@ class flickrInit(object):
 		self.keys = hidden.keys()
 		self.url = "http://api.flickr.com/services/rest"
 
+
 	def get_Tokens(self, url):
 
 		defaults = hidden.keys()
@@ -136,14 +137,20 @@ class photosets(object):
 			"api_key": self.consumer.key
 		}
 
-		#print "defaults: ", defaults
-
 		self.parameters = defaults
 	
+	def make_request(self,parameter=None):
+		
+		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=parameter)
+		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
+
+		url = req.to_url()
+		
+		return url
+
 	def get_photoset_List(self, user_id, page = 1, per_page = 1):
 
 		params = self.parameters.copy()
-		#print "d: ", d
 
 		params.update({
 			"method": "flickr.photosets.getList",
@@ -151,16 +158,10 @@ class photosets(object):
 			"page": page,
 			"per_page": per_page
 		})
-
-		#print "self:", self.parameters
-		#print "d:", d
-		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=params)
-		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
-
-		url = req.to_url()
-		print "url:", url
+		
+		url = self.make_request(params)
+		print url
 		data = urllib.urlopen(url).read()
-		print data
 
 		js = json.loads(data)
 		
@@ -175,9 +176,8 @@ class photosets(object):
 					"title": item["title"]["_content"],
 					"description": item["description"]["_content"]
 				})
+		
 		return result
-
-
 
 	def get_photoSize_URL_photoid(self, photo_id, size=0):
 
@@ -189,10 +189,12 @@ class photosets(object):
 			"photo_id": str(photo_id)
 		})
 		#request call
-		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=params)
+		"""req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=params)
 		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
 
-		url = req.to_url()
+		url = req.to_url()"""
+		url = self.make_request(params)
+		print url
 		data = urllib.urlopen(url).read()
 
 		js = json.loads(data)
