@@ -140,19 +140,21 @@ class photosets(object):
 
 		self.parameters = defaults
 	
-	def get_setid_user(self, user_id,page, per_):
+	def get_photoset_List(self, user_id, page = 1, per_page = 1):
 
 		params = self.parameters.copy()
 		#print "d: ", d
 
 		params.update({
 			"method": "flickr.photosets.getList",
-			"user_id": user_id
+			"user_id": user_id,
+			"page": page,
+			"per_page": per_page
 		})
 
 		#print "self:", self.parameters
 		#print "d:", d
-		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=d)
+		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=params)
 		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
 
 		url = req.to_url()
@@ -160,7 +162,24 @@ class photosets(object):
 		data = urllib.urlopen(url).read()
 		print data
 
-	def get_photoSize_Byid(self, photo_id, size=0):
+		js = json.loads(data)
+		
+		if js["stat"] == "fail":
+			print "Fail Code: ", js["code"], " Message: ", js["message"]
+		elif js["stat"] == "ok":	#Successful
+			result = list()
+
+			for item in js["photosets"]["photoset"]:
+				result.append({
+					"id": item["id"],
+					"title": item["title"]["_content"],
+					"description": item["description"]["_content"]
+				})
+		return result
+
+
+
+	def get_photoSize_URL_photoid(self, photo_id, size=0):
 
 		params = self.parameters.copy()
 

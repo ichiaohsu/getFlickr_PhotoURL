@@ -8,9 +8,10 @@ getflickr = flickr.photosets()
 
 #fk = flickr.flickrInit()
 #fk.get_Tokens(request_token_url)
-#user_id = raw_input("Enter user id - ")
+user_id = raw_input("Enter user id - ")
 
-url = getflickr.get_photoSize_Byid(23608652504,800)
-print url
+#url = getflickr.get_photoSize_URL_photoid(23608652504,800)
+#print url
 
-#getflickr.get_setID(user_id)
+photolist = getflickr.get_photoset_List(user_id,1,2)
+
