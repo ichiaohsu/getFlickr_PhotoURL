@@ -140,20 +140,18 @@ class photosets(object):
 
 		self.parameters = defaults
 	
-	def get_setID(self, user_id,page, per_):
+	def get_setid_user(self, user_id,page, per_):
 
-		d = self.parameters.copy()
-		print "d: ", d
+		params = self.parameters.copy()
+		#print "d: ", d
 
-		p = {
+		params.update({
 			"method": "flickr.photosets.getList",
 			"user_id": user_id
-		}
+		})
 
-		d.update(p)
-
-		print "self:", self.parameters
-		print "d:", d
+		#print "self:", self.parameters
+		#print "d:", d
 		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=d)
 		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
 
@@ -162,30 +160,30 @@ class photosets(object):
 		data = urllib.urlopen(url).read()
 		print data
 
-	def getSizes(self, photo_id, size):
+	def get_photoSize_Byid(self, photo_id, size=0):
 
-		d = self.parameters.copy()
+		params = self.parameters.copy()
 
 		#update request variables
-		d.update({
+		params.update({
 			"method": "flickr.photos.getSizes",
 			"photo_id": str(photo_id)
 		})
-
-		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=d)
+		#request call
+		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=params)
 		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
 
 		url = req.to_url()
-		#print "url:", url
 		data = urllib.urlopen(url).read()
 
 		js = json.loads(data)
-		#print js
+		
+		# Handle fail situation
 		if js["stat"] == "fail":
 			print "get size url fail."
 		elif js["stat"] == "ok":
 			for item in js["sizes"]["size"]:
-				if int(item["width"]) == size:
+				if int(item["width"]) == size and size != 0:
 					result_url = item["source"]
 			else:
 				return result_url
