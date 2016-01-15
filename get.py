@@ -1,11 +1,10 @@
 import flickr
 
-#request_token_url = "http://www.flickr.com/services/oauth/request_token"
-
 getflickr = flickr.photosets()
 
 #fk = flickr.flickrInit()
-#fk.get_Tokens(request_token_url)
+#fk.get_Tokens()
+
 user_id = raw_input("Enter user id - ")
 
 photoset_list = getflickr.get_photoset_List(user_id,1,2)
@@ -16,6 +15,7 @@ print photo_list
 
 for i in photo_list["photo"]:
 	src = getflickr.get_photoSize_URL_photoid(i["id"], 800)
+	print "src: ", src
 	i["src"] = src
 
 print photo_list

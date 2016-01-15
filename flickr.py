@@ -25,10 +25,10 @@ class flickrInit(object):
 		
 		#init defaults
 		self.keys = hidden.keys()
-		self.url = "http://api.flickr.com/services/rest"
+		self.url_req_token = "http://www.flickr.com/services/oauth/request_token"
+		self.url_access_token = "http://www.flickr.com/services/oauth/access_token"
 
-
-	def get_Tokens(self, url):
+	def get_Tokens(self):
 
 		defaults = hidden.keys()
 		defaults["oauth_timestamp"] = oauth.generate_timestamp()
@@ -37,12 +37,10 @@ class flickrInit(object):
 		defaults["oauth_version"] = "1.0"
 		defaults["oauth_callback"] = "http://ichiaohsu.github.io"
 
-		#print "asking: " , url, "params= ", defaults
-
 		# Setup the consumer with api_key and api_secret
 		consumer = oauth.OAuthConsumer(defaults["oauth_consumer_key"], defaults["oauth_consumer_secret"])
 		# Create request
-		oauth_req = oauth.OAuthRequest(http_method="GET", http_url=url, parameters=defaults)
+		oauth_req = oauth.OAuthRequest(http_method="GET", http_url=self.url_req_token, parameters=defaults)
 		# Create signature
 		oauth_req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),consumer, None)
 
@@ -72,7 +70,7 @@ class flickrInit(object):
 
 		del defaults["oauth_consumer_secret"]
 		
-		oauth_req = oauth.OAuthRequest(http_method="GET", http_url="http://www.flickr.com/services/oauth/access_token", parameters=defaults)
+		oauth_req = oauth.OAuthRequest(http_method="GET", http_url=self.url_access_token, parameters=defaults)
 		oauth_req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),consumer, token)
 
 		url = oauth_req.to_url()
@@ -111,9 +109,6 @@ class photosets(object):
 
 		self.keys = hidden.keys()
 		self.tokenfile = getToken()
-
-		#print self.keys
-		#print self.tokenfile
 
 		self.consumer = oauth.OAuthConsumer(self.keys["oauth_consumer_key"], self.keys["oauth_consumer_secret"])
 		self.token = oauth.OAuthToken(self.tokenfile["token"], self.tokenfile["token_secret"])
@@ -190,15 +185,13 @@ class photosets(object):
 		})
 
 		url = self.make_request(params)
-		#print url
 		data = urllib.urlopen(url).read()
-		#print data
 		js = json.loads(data)
 
 		if js["stat"] == "fail":
 			print "Fail Code: ", js["code"], " Message: ", js["message"]
 		elif js["stat"] == "ok":	#Successful
-			#print "success"
+		
 			photoset = dict()
 			photoset["title"] = js["photoset"]["title"]
 			photoset["photo"] = list()
@@ -221,7 +214,6 @@ class photosets(object):
 		})
 		# Request call
 		url = self.make_request(params)
-		#print url
 		data = urllib.urlopen(url).read()
 		js = json.loads(data)
 		

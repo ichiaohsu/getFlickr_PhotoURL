@@ -1,10 +1,10 @@
 # Keep this file separate
-# Put api key in oauth_consumer_key
-# And secret under oauth_consumer_secret
-# do include this file in flickr.py
+#key:	c6c7fe28cffafaadc3b12720bb4cd2db
+#secret key:	e372d30aa15a9110
+#import oauth
 
 def keys():
 	return {
-		"oauth_consumer_key" : "...",
-        "oauth_consumer_secret" : "...",
+		"oauth_consumer_key" : "c6c7fe28cffafaadc3b12720bb4cd2db",
+        "oauth_consumer_secret" : "e372d30aa15a9110",
 	}
