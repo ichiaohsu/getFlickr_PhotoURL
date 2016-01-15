@@ -179,6 +179,36 @@ class photosets(object):
 		
 		return result
 
+	def get_photolist_from_setid(self, user_id, photo_id):
+		
+		params = self.parameters.copy()
+		print photo_id
+		params.update({
+			"method": "flickr.photosets.getPhotos",
+			"user_id": user_id,
+			"photoset_id": photo_id
+		})
+		url = self.make_request(params)
+		print url
+		data = urllib.urlopen(url).read()
+		print data
+		js = json.loads(data)
+
+		if js["stat"] == "fail":
+			print "Fail Code: ", js["code"], " Message: ", js["message"]
+		elif js["stat"] == "ok":	#Successful
+			#print "success"
+			photoset = dict()
+			photoset["title"] = js["photoset"]["title"]
+			photoset["photo"] = list()
+
+			for item in js["photoset"]["photo"]:
+				photoset["photo"].append({
+					"title": item["title"],
+					"id": item["id"]
+				})
+		return photoset
+
 	def get_photoSize_URL_photoid(self, photo_id, size=0):
 
 		params = self.parameters.copy()
