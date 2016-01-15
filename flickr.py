@@ -112,8 +112,8 @@ class photosets(object):
 		self.keys = hidden.keys()
 		self.tokenfile = getToken()
 
-		print self.keys
-		print self.tokenfile
+		#print self.keys
+		#print self.tokenfile
 
 		self.consumer = oauth.OAuthConsumer(self.keys["oauth_consumer_key"], self.keys["oauth_consumer_secret"])
 		self.token = oauth.OAuthToken(self.tokenfile["token"], self.tokenfile["token_secret"])
@@ -160,7 +160,7 @@ class photosets(object):
 		})
 		
 		url = self.make_request(params)
-		print url
+		#print url
 		data = urllib.urlopen(url).read()
 
 		js = json.loads(data)
@@ -177,21 +177,22 @@ class photosets(object):
 					"description": item["description"]["_content"]
 				})
 		
-		return result
+			return result
 
 	def get_photolist_from_setid(self, user_id, photo_id):
 		
 		params = self.parameters.copy()
-		print photo_id
+		
 		params.update({
 			"method": "flickr.photosets.getPhotos",
 			"user_id": user_id,
 			"photoset_id": photo_id
 		})
+
 		url = self.make_request(params)
-		print url
+		#print url
 		data = urllib.urlopen(url).read()
-		print data
+		#print data
 		js = json.loads(data)
 
 		if js["stat"] == "fail":
@@ -207,26 +208,21 @@ class photosets(object):
 					"title": item["title"],
 					"id": item["id"]
 				})
-		return photoset
+			return photoset
 
 	def get_photoSize_URL_photoid(self, photo_id, size=0):
 
 		params = self.parameters.copy()
 
-		#update request variables
+		# Update request variables
 		params.update({
 			"method": "flickr.photos.getSizes",
 			"photo_id": str(photo_id)
 		})
-		#request call
-		"""req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=params)
-		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
-
-		url = req.to_url()"""
+		# Request call
 		url = self.make_request(params)
-		print url
+		#print url
 		data = urllib.urlopen(url).read()
-
 		js = json.loads(data)
 		
 		# Handle fail situation
