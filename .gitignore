@@ -1,6 +1,5 @@
 .DS_Store
 *.pyc
-hidden.py
 flickrURL.py
 token
 
