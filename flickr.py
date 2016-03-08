@@ -5,17 +5,112 @@ import oauth
 import re
 import json
 
-def getToken():
-	result = dict()
+class login(object):
 
-	fp = open("token")
+	keys = dict()
+	tokens = dict()
 
-	result["token"] = fp.readline().rstrip('\n')
-	result["token_secret"] = fp.readline()
+	def __init__(self,username):
+		# Set up token url
+		self.url_req_token = "http://www.flickr.com/services/oauth/request_token"
+		self.url_access_token = "http://www.flickr.com/services/oauth/access_token"
+
+		# Set up app keys
+		self.keys = hidden.keys()
+
+		# Temporary init username
+		self.username = username
+
+		try:
+			fi = open("token","r")
+
+			self.tokens["token"] = fi.readline().rstrip('\n')
+			self.tokens["token_secret"] = fi.readline()
+
+			fi.close()
+
+		except IOError:
+			print "Token inexist. Re-initialize user authorization..."
+			print
+			self.user_authorize()
+
+	def user_authorize(self):
+
+		defaults = hidden.keys().copy()
+		defaults["oauth_timestamp"] = oauth.generate_timestamp()
+		defaults["oauth_nonce"] = oauth.generate_nonce()
+		defaults["oauth_signature_method"] = "HMAC-SHA1"
+		defaults["oauth_version"] = "1.0"
+		defaults["oauth_callback"] = "https://www.flickr.com/"
+
+		# Setup the consumer with api_key and api_secret
+		consumer = oauth.OAuthConsumer(defaults["oauth_consumer_key"], defaults["oauth_consumer_secret"])
+		# Create request
+		oauth_req = oauth.OAuthRequest(http_method="GET", http_url=self.url_req_token, parameters=defaults)
+		# Create signature
+		oauth_req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),consumer, None)
+
+		url = oauth_req.to_url()
 	
-	fp.close()
-	return result
+		print '* Calling Flickr...'
+		connection = urllib.urlopen(url)
+		data = connection.read()
+		
+		#print data
+		
+		request_token = {
+			"oauth_token": re.findall("oauth_token=(.+)&",data)[0],
+			"oauth_token_secret": re.findall("oauth_token_secret=(.+)",data)[0]
+		}
 
+		#print request_token
+		token = oauth.OAuthToken(request_token["oauth_token"], request_token["oauth_token_secret"])
+
+		print "Go to the following link in your browser:"
+		print "http://www.flickr.com/services/oauth/authorize?oauth_token=%s&perms=read" % request_token['oauth_token'] 
+		print
+
+		oauth_verifier = raw_input("Enter the verifier - ")
+		print
+
+		defaults["oauth_token"] = request_token["oauth_token"]
+		defaults["oauth_verifier"] = oauth_verifier
+
+		del defaults["oauth_consumer_secret"]
+		
+		oauth_req = oauth.OAuthRequest(http_method="GET", http_url=self.url_access_token, parameters=defaults)
+		oauth_req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),consumer, token)
+
+		url = oauth_req.to_url()
+		connection = urllib.urlopen(url)
+		data = connection.read()
+
+		#print "data: ", data
+		#print
+
+		defaults["oauth_token"] = re.findall("oauth_token=(.+?)&", data)[0]
+		defaults["oauth_token_secret"] = re.findall("oauth_token_secret=(.+?)&", data)[0]
+		defaults["username"] = re.findall("username=(.+)",data)[0]
+		defaults["user_nsid"] = re.findall("user_nsid=(.+?)&",data)[0]
+
+		print defaults
+		print
+
+		self.tokens["token"] = defaults["oauth_token"]
+		self.tokens["token_secret"] = defaults["oauth_token_secret"]
+
+		with open("token", 'w') as f:
+			f.write(self.tokens['token'] + '\n')
+			f.write(self.tokens['token_secret'])
+		f.closed
+
+	def get_usertokens(self):
+		return self.tokens
+
+	def get_appkeys(self):
+		return self.keys
+
+"""
 class flickrInit(object):
 
 	keys = dict()
@@ -103,37 +198,42 @@ class flickrInit(object):
 	def get_tokens(self):
 		print "tokens: ", self.tokens
 	
+"""
 class photosets(object):
 
 	def __init__(self, nojsoncallback=True, format='json', parameters=None):
 
 		self.keys = hidden.keys()
 		self.tokenfile = getToken()
+		
+		if self.tokenfile is not None:
 
-		self.consumer = oauth.OAuthConsumer(self.keys["oauth_consumer_key"], self.keys["oauth_consumer_secret"])
-		self.token = oauth.OAuthToken(self.tokenfile["token"], self.tokenfile["token_secret"])
+			self.consumer = oauth.OAuthConsumer(self.keys["oauth_consumer_key"], self.keys["oauth_consumer_secret"])
+			self.token = oauth.OAuthToken(self.tokenfile["token"], self.tokenfile["token_secret"])
+			
+			if nojsoncallback:
+				self.nojsoncallback = 1
+			else:
+				self.nojsoncallback = 0
+			if not parameters:
+				parameters = {}
 
-		if nojsoncallback:
-			self.nojsoncallback = 1
-		else:
-			self.nojsoncallback = 0
-		if not parameters:
-			parameters = {}
+			self.url = "https://api.flickr.com/services/rest"
 
-		self.url = "https://api.flickr.com/services/rest"
+			defaults = {
+				"format": format,
+				"nojsoncallback": self.nojsoncallback,
+				"oauth_timestamp": oauth.generate_timestamp(),
+				"oauth_nonce": oauth.generate_nonce(),
+				"signature_method": "HMAC-SHA1",
+				"oauth_token": self.token.key,
+				"api_key": self.consumer.key
+			}
 
-		defaults = {
-			"format": format,
-			"nojsoncallback": self.nojsoncallback,
-			"oauth_timestamp": oauth.generate_timestamp(),
-			"oauth_nonce": oauth.generate_nonce(),
-			"signature_method": "HMAC-SHA1",
-			"oauth_token": self.token.key,
-			"api_key": self.consumer.key
-		}
-
-		self.parameters = defaults
+			self.parameters = defaults
 	
+		else:
+			print "token is none"
 	def make_request(self,parameter=None):
 		
 		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=parameter)
