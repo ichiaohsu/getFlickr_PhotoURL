@@ -7,16 +7,18 @@ user_name = raw_input("Enter user name - ")
 
 login = flickr.login(user_name)
 
-#token = login.get_usertokens()
-#keys = login.get_appkeys()
-print login.get_usertokens()["token"],login.get_usertokens()["token_secret"]
-print login.get_appkeys()["oauth_consumer_key"], login.get_appkeys()["oauth_consumer_secret"]
+token = login.get_usertokens()
+keys = login.get_appkeys()
+print token["token"],token["token_secret"]
+print keys["oauth_consumer_key"],keys["oauth_consumer_secret"]
+
+
+photoset_list = flickr.photosets(token, True, 'json', None)
+photo_list = photoset_list.get_photoset_List()
+
+print photo_list
 
 """
-photoset_list = getflickr.get_photoset_List(user_id,1,2)
-
-photo_list = getflickr.get_photolist_from_setid(user_id,photoset_list[1]["id"])
-
 print photo_list
 
 for i in photo_list["photo"]:

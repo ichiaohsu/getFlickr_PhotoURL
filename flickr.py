@@ -6,6 +6,7 @@ import re
 import json
 import sqlite3
 
+
 # open flickruser.sqlite
 conn = sqlite3.connect("flickr.db")
 cur = conn.cursor()
@@ -14,7 +15,7 @@ class login(object):
 
 	keys = dict()
 	tokens = dict()
-
+	
 	def __init__(self,username):
 		# Set up token url
 		self.url_req_token = "http://www.flickr.com/services/oauth/request_token"
@@ -26,7 +27,7 @@ class login(object):
 		try:
 			cur.execute('''SELECT token_id FROM Users WHERE name = ? ''',(username, ) )
 			token_id = cur.fetchone()[0]
-			print token_id
+			#print token_id
 
 			cur.execute('''SELECT token, secret FROM Tokens WHERE id = ?''',(token_id, ) )
 			result = cur.fetchone()
@@ -36,41 +37,17 @@ class login(object):
 			self.tokens["token_secret"] = result[1]
 
 		# Should specify sqlite table not exist error later in except part
-		except sqlite3.OperationalError:
-			print "Username not found in database. Re-initialize user authorization..."
-			print
-
-			# Table not exist in database, CREATE TABLE Users and Tokens
-			cur.executescript('''
-			CREATE TABLE Users(
-				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
-				name TEXT UNIQUE,
-				token_id INTERGER
-			);
-			CREATE TABLE Tokens(
-				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
-				token TEXT,
-				secret TEXT
-			);
-			''')
-
-			self.user_authorize()
-
-		"""
-		try:
-			fi = open("token","r")
-
-			self.tokens["token"] = fi.readline().rstrip('\n')
-			self.tokens["token_secret"] = fi.readline()
-
-			fi.close()
-
-		except IOError:
-			print "Token inexist. Re-initialize user authorization..."
-			print
-			self.user_authorize()
-		"""
-
+		except sqlite3.OperationalError, e:
+			# Sorting sqlite3 error handle
+			if "no such table" in str(e):
+				
+				print "Username not found in database. Re-initialize user authorization..."
+				print
+				# Setup database for the first time. CREATE TABLE Users and Tokens
+				self.db_init()
+				# Login
+				self.user_authorize()
+		
 	def user_authorize(self):
 
 		defaults = hidden.keys().copy()
@@ -90,6 +67,7 @@ class login(object):
 		url = oauth_req.to_url()
 	
 		print '* Calling Flickr...'
+		print
 		connection = urllib.urlopen(url)
 		data = connection.read()
 		
@@ -129,7 +107,7 @@ class login(object):
 		defaults["oauth_token_secret"] = re.findall("oauth_token_secret=(.+?)&", data)[0]
 		defaults["username"] = re.findall("username=(.+)",data)[0]
 		defaults["user_nsid"] = re.findall("user_nsid=(.+?)&",data)[0]
-
+		print defaults["user_nsid"].decode('utf-8')
 		#print defaults
 		#print
 
@@ -151,12 +129,22 @@ class login(object):
 		#print "user: ", defaults["username"], " id: ", user_id
 
 		conn.commit()
-		"""
-		with open("token", 'w') as f:
-			f.write(self.tokens['token'] + '\n')
-			f.write(self.tokens['token_secret'])
-		f.closed
-		"""
+
+	def db_init(self):
+
+		cur.executescript('''
+			CREATE TABLE Users(
+				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+				name TEXT UNIQUE,
+				token_id INTERGER
+			);
+			
+			CREATE TABLE Tokens(
+				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+				token TEXT,
+				secret TEXT
+			);
+		''')
 
 	def get_usertokens(self):
 		return self.tokens
@@ -166,15 +154,15 @@ class login(object):
 
 class photosets(object):
 
-	def __init__(self, nojsoncallback=True, format='json', parameters=None):
+	def __init__(self, tokens, nojsoncallback=True, format='json', parameters=None):
 
 		self.keys = hidden.keys()
-		self.tokenfile = getToken()
+		self.dbtokens = tokens
 		
-		if self.tokenfile is not None:
+		if self.dbtokens is not None:
 
 			self.consumer = oauth.OAuthConsumer(self.keys["oauth_consumer_key"], self.keys["oauth_consumer_secret"])
-			self.token = oauth.OAuthToken(self.tokenfile["token"], self.tokenfile["token_secret"])
+			self.token = oauth.OAuthToken(self.dbtokens["token"], self.dbtokens["token_secret"])
 			
 			if nojsoncallback:
 				self.nojsoncallback = 1
@@ -205,22 +193,21 @@ class photosets(object):
 		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
 
 		url = req.to_url()
-		
+		print url
 		return url
 
-	def get_photoset_List(self, user_id, page = 1, per_page = 1):
-
+	#def get_photoset_List(self, user_id, page = 1, per_page = 1):
+	def get_photoset_List(self, page = 1, per_page = 1):
 		params = self.parameters.copy()
 
 		params.update({
 			"method": "flickr.photosets.getList",
-			"user_id": user_id,
 			"page": page,
 			"per_page": per_page
 		})
 		
 		url = self.make_request(params)
-		#print url
+		print url
 		data = urllib.urlopen(url).read()
 
 		js = json.loads(data)
@@ -291,3 +278,7 @@ class photosets(object):
 					result_url = item["source"]
 			else:
 				return result_url
+
+	def set_token(self, tokens):
+		self.tokens = tokens
+		print self.tokens
