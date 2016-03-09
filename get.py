@@ -12,9 +12,12 @@ keys = login.get_appkeys()
 print token["token"],token["token_secret"]
 print keys["oauth_consumer_key"],keys["oauth_consumer_secret"]
 
+user_id = raw_input("Enter user id - ")
+print user_id
+print
 
 photoset_list = flickr.photosets(token, True, 'json', None)
-photo_list = photoset_list.get_photoset_List()
+photo_list = photoset_list.get_photoset_List(user_id)
 
 print photo_list
 

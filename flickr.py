@@ -196,12 +196,13 @@ class photosets(object):
 		print url
 		return url
 
-	#def get_photoset_List(self, user_id, page = 1, per_page = 1):
-	def get_photoset_List(self, page = 1, per_page = 1):
+	def get_photoset_List(self, user_id, page = 1, per_page = 1):
+	#def get_photoset_List(self, page = 1, per_page = 1):
 		params = self.parameters.copy()
 
 		params.update({
 			"method": "flickr.photosets.getList",
+			"user_nsid": "user_id",
 			"page": page,
 			"per_page": per_page
 		})
