@@ -4,6 +4,11 @@ import hidden
 import oauth
 import re
 import json
+import sqlite3
+
+# open flickruser.sqlite
+conn = sqlite3.connect("flickr.db")
+cur = conn.cursor()
 
 class login(object):
 
@@ -18,9 +23,40 @@ class login(object):
 		# Set up app keys
 		self.keys = hidden.keys()
 
-		# Temporary init username
-		self.username = username
+		try:
+			cur.execute('''SELECT token_id FROM Users WHERE name = ? ''',(username, ) )
+			token_id = cur.fetchone()[0]
+			print token_id
 
+			cur.execute('''SELECT token, secret FROM Tokens WHERE id = ?''',(token_id, ) )
+			result = cur.fetchone()
+			#print result
+
+			self.tokens["token"] = result[0]
+			self.tokens["token_secret"] = result[1]
+
+		# Should specify sqlite table not exist error later in except part
+		except sqlite3.OperationalError:
+			print "Username not found in database. Re-initialize user authorization..."
+			print
+
+			# Table not exist in database, CREATE TABLE Users and Tokens
+			cur.executescript('''
+			CREATE TABLE Users(
+				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+				name TEXT UNIQUE,
+				token_id INTERGER
+			);
+			CREATE TABLE Tokens(
+				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+				token TEXT,
+				secret TEXT
+			);
+			''')
+
+			self.user_authorize()
+
+		"""
 		try:
 			fi = open("token","r")
 
@@ -33,6 +69,7 @@ class login(object):
 			print "Token inexist. Re-initialize user authorization..."
 			print
 			self.user_authorize()
+		"""
 
 	def user_authorize(self):
 
@@ -93,16 +130,33 @@ class login(object):
 		defaults["username"] = re.findall("username=(.+)",data)[0]
 		defaults["user_nsid"] = re.findall("user_nsid=(.+?)&",data)[0]
 
-		print defaults
-		print
+		#print defaults
+		#print
 
 		self.tokens["token"] = defaults["oauth_token"]
 		self.tokens["token_secret"] = defaults["oauth_token_secret"]
 
+		cur.execute('''INSERT INTO Tokens (token, secret) VALUES (?, ?)''', 
+			(defaults["oauth_token"], defaults["oauth_token_secret"]) )
+		
+		#cur.execute('SELECT id FROM Tokens WHERE token = ?', (defaults["oauth_token"], ) )
+		# Named placeholders style
+		cur.execute('SELECT id FROM Tokens WHERE token=:t AND secret=:ts', {"t":defaults["oauth_token"], "ts":defaults["oauth_token_secret"]} )
+		token_id = cur.fetchone()[0]
+
+		# Store username in database
+		cur.execute('''INSERT OR IGNORE INTO Users (name, token_id) VALUES (?, ?)''',(defaults["username"], token_id) )
+		#cur.execute('SELECT id FROM Users WHERE name = ?', (defaults["username"], ) )
+		#user_id = cur.fetchone()[0]
+		#print "user: ", defaults["username"], " id: ", user_id
+
+		conn.commit()
+		"""
 		with open("token", 'w') as f:
 			f.write(self.tokens['token'] + '\n')
 			f.write(self.tokens['token_secret'])
 		f.closed
+		"""
 
 	def get_usertokens(self):
 		return self.tokens
