@@ -9,9 +9,9 @@ login = flickr.login(user_name)
 
 token = login.get_usertokens()
 keys = login.get_appkeys()
-print token
-print token["token"],token["token_secret"]
-print keys["oauth_consumer_key"],keys["oauth_consumer_secret"]
+#print token
+#print token["token"],token["token_secret"]
+#print keys["oauth_consumer_key"],keys["oauth_consumer_secret"]
 
 # Get user_id from login object
 user_id = login.get_userid()
@@ -19,12 +19,12 @@ print user_id
 print
 
 photoset = flickr.photosets(token, True, 'json', None)
-photoset_list = photoset.get_photoset_List(user_id,1,2)
+photoset_list = photoset.get_photoset_List(user_id)
 
 print photoset_list
 print 
 
-photo_list = photoset.get_photolist_from_setid(user_id, photoset_list[1]["id"])
+photo_list = photoset.get_photolist_from_setid(user_id, photoset_list[0]["id"])
 
 print photo_list
 print

@@ -25,7 +25,31 @@ class login(object):
 		# Set up app keys
 		self.keys = hidden.keys()
 
+		# Initialization of database
+		self.db_init()
+
+		cur.execute('''SELECT user_id,token_id FROM Users WHERE name = ? ''',(username, ) )
+		
+		user_result = cur.fetchone()
+		print  user_result
+		
+		if user_result is None:
+			
+			print "Username not found in database. Re-initialize user authorization..."
+			print
+			self.user_authorize()
+
+		self.user_id = user_result[0]
+
+		token_id = user_result[1]
+		cur.execute('''SELECT token, secret FROM Tokens WHERE id = ?''',(token_id, ) )
+		result = cur.fetchone()
+
+		self.tokens["token"] = result[0]
+		self.tokens["token_secret"] = result[1]
+		"""
 		try:
+			
 			cur.execute('''SELECT user_id,token_id FROM Users WHERE name = ? ''',(username, ) )
 			# Return value is in a tuple
 			user_result = cur.fetchone()
@@ -52,7 +76,7 @@ class login(object):
 				self.db_init()
 				# Login
 				self.user_authorize()
-		
+		"""
 	def user_authorize(self):
 
 		defaults = hidden.keys().copy()
@@ -75,8 +99,6 @@ class login(object):
 		print
 		connection = urllib.urlopen(url)
 		data = connection.read()
-		
-		#print data
 		
 		request_token = {
 			"oauth_token": re.findall("oauth_token=(.+)&",data)[0],
@@ -105,9 +127,6 @@ class login(object):
 		connection = urllib.urlopen(url)
 		data = connection.read()
 
-		#print "data: ", data
-		#print
-
 		defaults["oauth_token"] = re.findall("oauth_token=(.+?)&", data)[0]
 		defaults["oauth_token_secret"] = re.findall("oauth_token_secret=(.+?)&", data)[0]
 		defaults["username"] = re.findall("username=(.+)",data)[0]
@@ -126,7 +145,6 @@ class login(object):
 		cur.execute('''INSERT INTO Tokens (token, secret) VALUES (?, ?)''', 
 			(defaults["oauth_token"], defaults["oauth_token_secret"]) )
 		
-		#cur.execute('SELECT id FROM Tokens WHERE token = ?', (defaults["oauth_token"], ) )
 		# Named placeholders style
 		cur.execute('SELECT id FROM Tokens WHERE token=:t AND secret=:ts', {"t":defaults["oauth_token"], "ts":defaults["oauth_token_secret"]} )
 		token_id = cur.fetchone()[0]
@@ -135,26 +153,38 @@ class login(object):
 		cur.execute('''
 			INSERT OR IGNORE INTO Users (name, token_id, user_id) VALUES (?, ?, ?)'''
 			,(defaults["username"], token_id, self.user_id) )
-		#cur.execute('SELECT id FROM Users WHERE name = ?', (defaults["username"], ) )
-		#user_id = cur.fetchone()[0]
-		#print "user: ", defaults["username"], " id: ", user_id
 
 		conn.commit()
 
 	def db_init(self):
 
 		cur.executescript('''
-			CREATE TABLE Users(
+			CREATE TABLE IF NOT EXISTS Users(
 				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
 				name TEXT UNIQUE,
 				token_id INTERGER,
 				user_id TEXT UNIQUE
 			);
 			
-			CREATE TABLE Tokens(
+			CREATE TABLE IF NOT EXISTS Tokens(
 				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
 				token TEXT,
 				secret TEXT
+			);
+
+			CREATE TABLE IF NOT EXISTS Albums(
+				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+				title TEXT,
+				description TEXT,
+				user_id INTEGER
+			);
+
+			CREATE TABLE IF NOT EXISTS Photos(
+				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+				title TEXT,
+				description TEXT,
+				album_id INTEGER,
+				link TEXT
 			);
 		''')
 
@@ -214,13 +244,14 @@ class photosets(object):
 		#print url
 		return url
 
-	def get_photoset_List(self, user_id, page = 1, per_page = 1):
+	# page and per_page set default to None to get the whole photoset list
+	def get_photoset_List(self, user_id, page = None, per_page = None):
 		
 		params = self.parameters.copy()
 		#print user_id
 		params.update({
 			"method": "flickr.photosets.getList",
-			"user_id": user_id.encode('ascii'),
+			"user_id": user_id,
 			"page": page,
 			"per_page": per_page
 		})
@@ -228,6 +259,9 @@ class photosets(object):
 		print params
 		url = self.make_request(params)
 		print url
+
+		print "Getting photoset lists......"
+		print 
 		data = urllib.urlopen(url).read()
 
 		js = json.loads(data)
