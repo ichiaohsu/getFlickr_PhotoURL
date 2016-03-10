@@ -1,3 +1,4 @@
+# -*- coding: utf8 -*-
 #Class base flickr module
 import urllib
 import hidden
@@ -25,13 +26,17 @@ class login(object):
 		self.keys = hidden.keys()
 
 		try:
-			cur.execute('''SELECT token_id FROM Users WHERE name = ? ''',(username, ) )
-			token_id = cur.fetchone()[0]
+			cur.execute('''SELECT user_id,token_id FROM Users WHERE name = ? ''',(username, ) )
+			# Return value is in a tuple
+			user_result = cur.fetchone()
+			
+			self.user_id = user_result[0]
+			token_id = user_result[1]
+			#print self.user_id
 			#print token_id
 
 			cur.execute('''SELECT token, secret FROM Tokens WHERE id = ?''',(token_id, ) )
 			result = cur.fetchone()
-			#print result
 
 			self.tokens["token"] = result[0]
 			self.tokens["token_secret"] = result[1]
@@ -107,12 +112,16 @@ class login(object):
 		defaults["oauth_token_secret"] = re.findall("oauth_token_secret=(.+?)&", data)[0]
 		defaults["username"] = re.findall("username=(.+)",data)[0]
 		defaults["user_nsid"] = re.findall("user_nsid=(.+?)&",data)[0]
-		print defaults["user_nsid"].decode('utf-8')
-		#print defaults
-		#print
 
 		self.tokens["token"] = defaults["oauth_token"]
 		self.tokens["token_secret"] = defaults["oauth_token_secret"]
+		
+		# Replace %40 in user_id, or the request url would be wrong
+		if "%40" in defaults["user_nsid"]:	
+			self.user_id = defaults["user_nsid"].replace("%40","@")
+			print self.user_id
+		else:
+			self.user_id = defaults["user_nsid"]
 
 		cur.execute('''INSERT INTO Tokens (token, secret) VALUES (?, ?)''', 
 			(defaults["oauth_token"], defaults["oauth_token_secret"]) )
@@ -123,7 +132,9 @@ class login(object):
 		token_id = cur.fetchone()[0]
 
 		# Store username in database
-		cur.execute('''INSERT OR IGNORE INTO Users (name, token_id) VALUES (?, ?)''',(defaults["username"], token_id) )
+		cur.execute('''
+			INSERT OR IGNORE INTO Users (name, token_id, user_id) VALUES (?, ?, ?)'''
+			,(defaults["username"], token_id, self.user_id) )
 		#cur.execute('SELECT id FROM Users WHERE name = ?', (defaults["username"], ) )
 		#user_id = cur.fetchone()[0]
 		#print "user: ", defaults["username"], " id: ", user_id
@@ -136,7 +147,8 @@ class login(object):
 			CREATE TABLE Users(
 				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
 				name TEXT UNIQUE,
-				token_id INTERGER
+				token_id INTERGER,
+				user_id TEXT UNIQUE
 			);
 			
 			CREATE TABLE Tokens(
@@ -152,17 +164,22 @@ class login(object):
 	def get_appkeys(self):
 		return self.keys
 
+	def get_userid(self):
+		return self.user_id
+
 class photosets(object):
 
 	def __init__(self, tokens, nojsoncallback=True, format='json', parameters=None):
 
 		self.keys = hidden.keys()
 		self.dbtokens = tokens
-		
+		self.dbtokens["token"].encode("ascii")
+		self.dbtokens["token_secret"].encode('ascii')
+
 		if self.dbtokens is not None:
 
 			self.consumer = oauth.OAuthConsumer(self.keys["oauth_consumer_key"], self.keys["oauth_consumer_secret"])
-			self.token = oauth.OAuthToken(self.dbtokens["token"], self.dbtokens["token_secret"])
+			self.token = oauth.OAuthToken(self.dbtokens["token"].encode("ascii"), self.dbtokens["token_secret"].encode("ascii"))
 			
 			if nojsoncallback:
 				self.nojsoncallback = 1
@@ -182,31 +199,33 @@ class photosets(object):
 				"oauth_token": self.token.key,
 				"api_key": self.consumer.key
 			}
-
+			print defaults
 			self.parameters = defaults
 	
 		else:
 			print "token is none"
 	def make_request(self,parameter=None):
 		
+		#print parameter
 		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=parameter)
 		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
 
 		url = req.to_url()
-		print url
+		#print url
 		return url
 
 	def get_photoset_List(self, user_id, page = 1, per_page = 1):
-	#def get_photoset_List(self, page = 1, per_page = 1):
+		
 		params = self.parameters.copy()
-
+		#print user_id
 		params.update({
 			"method": "flickr.photosets.getList",
-			"user_nsid": "user_id",
+			"user_id": user_id.encode('ascii'),
 			"page": page,
 			"per_page": per_page
 		})
 		
+		print params
 		url = self.make_request(params)
 		print url
 		data = urllib.urlopen(url).read()
