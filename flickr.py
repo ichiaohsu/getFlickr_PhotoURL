@@ -38,15 +38,15 @@ class login(object):
 			print "Username not found in database. Re-initialize user authorization..."
 			print
 			self.user_authorize()
+		else:
+			self.user_id = user_result[0]
 
-		self.user_id = user_result[0]
+			token_id = user_result[1]
+			cur.execute('''SELECT token, secret FROM Tokens WHERE id = ?''',(token_id, ) )
+			result = cur.fetchone()
 
-		token_id = user_result[1]
-		cur.execute('''SELECT token, secret FROM Tokens WHERE id = ?''',(token_id, ) )
-		result = cur.fetchone()
-
-		self.tokens["token"] = result[0]
-		self.tokens["token_secret"] = result[1]
+			self.tokens["token"] = result[0]
+			self.tokens["token_secret"] = result[1]
 		"""
 		try:
 			
@@ -176,6 +176,7 @@ class login(object):
 				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
 				title TEXT,
 				description TEXT,
+				photoset_id TEXT,
 				user_id INTEGER
 			);
 
@@ -269,16 +270,33 @@ class photosets(object):
 		if js["stat"] == "fail":
 			print "Fail Code: ", js["code"], " Message: ", js["message"]
 		elif js["stat"] == "ok":	#Successful
-			result = list()
-
+			print "Successfully getting photoset list!"
+			#result = list()
+			
+			cur.execute('''SELECT id FROM Users where user_id = ?''',(user_id, ) )
+			uid = cur.fetchone()[0]	
+			
+			print uid
+			# Change this part to an individual function. Use database to store result instead
 			for item in js["photosets"]["photoset"]:
+				
+				photoset_id = item["id"]
+				title = item["title"]["_content"]
+				description = item["description"]["_content"]
+				#print type(photoset_id),type(title),type(description)
+				print photoset_id, title, description
+				"""
 				result.append({
 					"id": item["id"],
 					"title": item["title"]["_content"],
 					"description": item["description"]["_content"]
 				})
-		
-			return result
+				"""
+				cur.execute('''
+					INSERT OR IGNORE INTO Albums (title, description, user_id, photoset_id) 
+					VALUES (?, ?, ?, ?)''', ( title, description, uid, photoset_id ) )
+			conn.commit()
+			#return result
 
 	def get_photolist_from_setid(self, user_id, photo_id):
 		
