@@ -176,7 +176,7 @@ class login(object):
 				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
 				title TEXT,
 				description TEXT,
-				photoset_id TEXT,
+				photoset_id TEXT UNIQUE,
 				user_id INTEGER
 			);
 
@@ -246,8 +246,10 @@ class photosets(object):
 		return url
 
 	# page and per_page set default to None to get the whole photoset list
-	def get_photoset_List(self, user_id, page = None, per_page = None):
+	def photosetList_byUserid(self, user_id, page = None, per_page = None):
 		
+		self.user_id = user_id
+
 		params = self.parameters.copy()
 		#print user_id
 		params.update({
@@ -276,7 +278,7 @@ class photosets(object):
 			cur.execute('''SELECT id FROM Users where user_id = ?''',(user_id, ) )
 			uid = cur.fetchone()[0]	
 			
-			print uid
+			#print uid
 			# Change this part to an individual function. Use database to store result instead
 			for item in js["photosets"]["photoset"]:
 				
@@ -295,8 +297,8 @@ class photosets(object):
 				cur.execute('''
 					INSERT OR IGNORE INTO Albums (title, description, user_id, photoset_id) 
 					VALUES (?, ?, ?, ?)''', ( title, description, uid, photoset_id ) )
+
 			conn.commit()
-			#return result
 
 	def get_photolist_from_setid(self, user_id, photo_id):
 		
@@ -351,6 +353,28 @@ class photosets(object):
 			else:
 				return result_url
 
+	def return_photosetList(self):
+
+		cur.execute('''SELECT id FROM Users WHERE user_id = ?''',(self.user_id, ) )
+		uid = cur.fetchone()[0]
+		print uid
+
+		cur.execute('''SELECT * FROM Albums WHERE user_id = ?''',(uid, ) )
+		#result = cur.fetchall()
+		#print cur.fetchall()
+		result = list()
+		#print result
+		#print type(result)
+		
+		for item in cur.fetchall():
+			result.append({
+				"title": item[1],
+				"description": item[2],
+				"id": item[3]
+			})
+		return result
+	"""
 	def set_token(self, tokens):
 		self.tokens = tokens
 		print self.tokens
+	"""

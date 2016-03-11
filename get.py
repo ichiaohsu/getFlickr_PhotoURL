@@ -20,8 +20,10 @@ print
 
 photoset = flickr.photosets(token, True, 'json', None)
 #photoset_list = photoset.get_photoset_List(user_id)
-photoset.get_photoset_List(user_id)
-"""
+photoset.photosetList_byUserid(user_id)
+
+photoset_list = photoset.return_photosetList()
+
 print photoset_list
 print 
 
@@ -39,4 +41,3 @@ fp = open("Album.js","w")
 json.dump(photo_list, fp, indent=4)
 
 fp.close()
-"""
