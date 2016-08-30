@@ -155,7 +155,7 @@ class photosets(object):
 		})
 		
 		url = self.make_request(params)
-		#print url
+		print url
 		data = urllib.urlopen(url).read()
 
 		js = json.loads(data)
