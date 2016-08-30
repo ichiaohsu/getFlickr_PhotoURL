@@ -1,7 +1,7 @@
 .DS_Store
 *.pyc
-hidden.py
 flickrURL.py
 token
 *.js
-
+hidden.py
+*.sqlite
