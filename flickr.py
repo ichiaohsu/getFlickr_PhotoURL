@@ -15,7 +15,7 @@ class login(object):
 
 	keys = dict()
 	tokens = dict()
-	
+
 	def __init__(self,username):
 		# Set up token url
 		self.url_req_token = "http://www.flickr.com/services/oauth/request_token"
@@ -40,14 +40,14 @@ class login(object):
 		except sqlite3.OperationalError, e:
 			# Sorting sqlite3 error handle
 			if "no such table" in str(e):
-				
+
 				print "Username not found in database. Re-initialize user authorization..."
 				print
 				# Setup database for the first time. CREATE TABLE Users and Tokens
 				self.db_init()
 				# Login
 				self.user_authorize()
-		
+
 	def user_authorize(self):
 
 		defaults = hidden.keys().copy()
@@ -65,14 +65,14 @@ class login(object):
 		oauth_req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),consumer, None)
 
 		url = oauth_req.to_url()
-	
+
 		print '* Calling Flickr...'
 		print
 		connection = urllib.urlopen(url)
 		data = connection.read()
-		
+
 		#print data
-		
+
 		request_token = {
 			"oauth_token": re.findall("oauth_token=(.+)&",data)[0],
 			"oauth_token_secret": re.findall("oauth_token_secret=(.+)",data)[0]
@@ -82,7 +82,7 @@ class login(object):
 		token = oauth.OAuthToken(request_token["oauth_token"], request_token["oauth_token_secret"])
 
 		print "Go to the following link in your browser:"
-		print "http://www.flickr.com/services/oauth/authorize?oauth_token=%s&perms=read" % request_token['oauth_token'] 
+		print "http://www.flickr.com/services/oauth/authorize?oauth_token=%s&perms=read" % request_token['oauth_token']
 		print
 
 		oauth_verifier = raw_input("Enter the verifier - ")
@@ -92,7 +92,7 @@ class login(object):
 		defaults["oauth_verifier"] = oauth_verifier
 
 		del defaults["oauth_consumer_secret"]
-		
+
 		oauth_req = oauth.OAuthRequest(http_method="GET", http_url=self.url_access_token, parameters=defaults)
 		oauth_req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),consumer, token)
 
@@ -114,9 +114,9 @@ class login(object):
 		self.tokens["token"] = defaults["oauth_token"]
 		self.tokens["token_secret"] = defaults["oauth_token_secret"]
 
-		cur.execute('''INSERT INTO Tokens (token, secret) VALUES (?, ?)''', 
+		cur.execute('''INSERT INTO Tokens (token, secret) VALUES (?, ?)''',
 			(defaults["oauth_token"], defaults["oauth_token_secret"]) )
-		
+
 		#cur.execute('SELECT id FROM Tokens WHERE token = ?', (defaults["oauth_token"], ) )
 		# Named placeholders style
 		cur.execute('SELECT id FROM Tokens WHERE token=:t AND secret=:ts', {"t":defaults["oauth_token"], "ts":defaults["oauth_token_secret"]} )
@@ -138,7 +138,7 @@ class login(object):
 				name TEXT UNIQUE,
 				token_id INTERGER
 			);
-			
+
 			CREATE TABLE Tokens(
 				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
 				token TEXT,
@@ -152,18 +152,21 @@ class login(object):
 	def get_appkeys(self):
 		return self.keys
 
+	def get_userid(self):
+		return self.user_id
+
 class photosets(object):
 
 	def __init__(self, tokens, nojsoncallback=True, format='json', parameters=None):
 
 		self.keys = hidden.keys()
 		self.dbtokens = tokens
-		
+
 		if self.dbtokens is not None:
 
 			self.consumer = oauth.OAuthConsumer(self.keys["oauth_consumer_key"], self.keys["oauth_consumer_secret"])
 			self.token = oauth.OAuthToken(self.dbtokens["token"], self.dbtokens["token_secret"])
-			
+
 			if nojsoncallback:
 				self.nojsoncallback = 1
 			else:
@@ -184,11 +187,11 @@ class photosets(object):
 			}
 
 			self.parameters = defaults
-	
+
 		else:
 			print "token is none"
 	def make_request(self,parameter=None):
-		
+
 		req = oauth.OAuthRequest(http_method="GET", http_url=self.url, parameters=parameter)
 		req.sign_request(oauth.OAuthSignatureMethod_HMAC_SHA1(),self.consumer, self.token)
 
@@ -206,13 +209,13 @@ class photosets(object):
 			"page": page,
 			"per_page": per_page
 		})
-		
+
 		url = self.make_request(params)
 		print url
 		data = urllib.urlopen(url).read()
 
 		js = json.loads(data)
-		
+
 		if js["stat"] == "fail":
 			print "Fail Code: ", js["code"], " Message: ", js["message"]
 		elif js["stat"] == "ok":	#Successful
@@ -224,13 +227,13 @@ class photosets(object):
 					"title": item["title"]["_content"],
 					"description": item["description"]["_content"]
 				})
-		
+
 			return result
 
 	def get_photolist_from_setid(self, user_id, photo_id):
-		
+
 		params = self.parameters.copy()
-		
+
 		params.update({
 			"method": "flickr.photosets.getPhotos",
 			"user_id": user_id,
@@ -244,7 +247,7 @@ class photosets(object):
 		if js["stat"] == "fail":
 			print "Fail Code: ", js["code"], " Message: ", js["message"]
 		elif js["stat"] == "ok":	#Successful
-		
+
 			photoset = dict()
 			photoset["title"] = js["photoset"]["title"]
 			photoset["photo"] = list()
@@ -269,7 +272,7 @@ class photosets(object):
 		url = self.make_request(params)
 		data = urllib.urlopen(url).read()
 		js = json.loads(data)
-		
+
 		# Handle fail situation
 		if js["stat"] == "fail":
 			print "get size url fail."

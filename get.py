@@ -12,7 +12,8 @@ keys = login.get_appkeys()
 print token["token"],token["token_secret"]
 print keys["oauth_consumer_key"],keys["oauth_consumer_secret"]
 
-user_id = raw_input("Enter user id - ")
+#user_id = raw_input("Enter user id - ")
+user_id = login.get_userid()
 print user_id
 print
 
