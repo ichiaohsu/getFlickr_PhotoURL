@@ -4,4 +4,4 @@ flickrURL.py
 token
 *.js
 hidden.py
-*.db
+*.sqlite
