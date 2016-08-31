@@ -1,47 +1,6 @@
 import flickr
 import json
 
-user_name = raw_input("Enter user name - ")
-
-login = flickr.login(user_name)
-
-token = login.get_usertokens()
-keys = login.get_appkeys()
-
-# Get user_id from login object
-user_id = login.get_userid()
-print "User id: ", user_id
-print
-
-set_obj = flickr.photosets(token, True, 'json', None)
-#photoset_list = photoset.get_photoset_List(user_id)
-set_obj.photosetList_byUserid(user_id)
-
-photoset_list = set_obj.return_photosetList()
-
-#print photoset_list
-#print len(photoset_list)
-
-def print_title(argument):
-	print
-	for i in argument:
-		print i["title"]
-	print
-
-print_title(photoset_list)
-
-def getAllPhotos():
-
-	print "Getting All photos from your flickr. Please wait......"
-	print
-	for album in photoset_list:
-		print "Processing getting photos from album: ", album['title'], ' ......'
-		print
-		# Store photos in database
-		set_obj.photoList_bySetid(user_id, album['id'])
-
-#getAllPhotos()
-
 def showSelector(album_list):
 
 	count = 1
@@ -58,48 +17,41 @@ def showSelector(album_list):
 		print "Select ", album_list[int(index)-1]['title']
 	return select_albumid
 
-chosen_albumid = showSelector(photoset_list)
-print chosen_albumid
+def prepareChosenPhotos(arg):
 
-def getChosenPhotos(album_id):
+	print
+	print "Getting All chosen photos from your flickr. Please wait......"
+	print
+	for album in arg:
+
+		print "......"
+		# Store photos in database
+		set_obj.photoList_bySetid(user_id, album)
+
+def getChosenPhotoLink(album_id):
+	
 	albums = list()
-	#photo_list = list()
 	for index, val in enumerate(album_id):
 		albums.append( set_obj.return_photoList(val) )
-		#print albums
-		#print
 
+		print "Getting photo from album ", albums[index]['album_name'], '......'
 		for p in albums[index]['photos']:
+
 			p['src'] = set_obj.getSize_byPhotoid(p['photo_id'],800)
-		#for p in photos:
-		#	p['src'] = set_obj.getSize_byPhotoid(p['photo_id'],800)
+			del p['photo_id']
 
 	return albums
-#photoset.photoList_bySetid(user_id, photoset_list[0]["id"])
-#photo_list = photoset.return_photoList(photoset_list[0]["id"])
-
-chosen_album = getChosenPhotos(chosen_albumid)
-print chosen_album
-#print_title(photo_list["photo"])
-#print photo_list
-#print
-
-'''
-for i in photo_list["photo"]:
-	src = set_obj.getSize_byPhotoid(i["photo_id"],800)
-	#src = set_obj.get_photoSize_URL_photoid(i["id"], 800)
-
-	print "src: ", src
-	#i["src"] = src
-'''
 
 def writeJSON(argument):
-	fp = open("Album.js","w")
+
+	print
+	save_name = raw_input("Enter desired file name - ") + ".js"
+	print
+
+	fp = open(save_name,"w")
 	json.dump(argument, fp, indent=4)
 
 	fp.close()
-
-#writeJSON(photo_list)
 
 def formatDict(arg):
 	format_final = {
@@ -107,4 +59,35 @@ def formatDict(arg):
 	}
 	writeJSON(format_final)
 
+
+user_name = raw_input("Enter user name - ")
+
+login = flickr.login(user_name)
+
+token = login.get_usertokens()
+keys = login.get_appkeys()
+
+# Get user_id from login object
+user_id = login.get_userid()
+print "login User: ", user_name, " id: ", user_id
+print
+
+# Initialization of a photoset object
+set_obj = flickr.photosets(token, True, 'json', None)
+
+# Get all photosets under the same author
+set_obj.photosetList_byUserid(user_id)
+
+photoset_list = set_obj.return_photosetList()
+
+# Show selector to users and get list of chosen albums
+chosen_albumid = showSelector(photoset_list)
+
+# Prepare all photo info needed in advance
+prepareChosenPhotos(chosen_albumid)
+
+# Request direct link from flickr for each photos
+chosen_album = getChosenPhotoLink(chosen_albumid)
+
+# Save JSON
 formatDict(chosen_album)
