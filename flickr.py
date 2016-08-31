@@ -158,6 +158,7 @@ class login(object):
 			CREATE TABLE IF NOT EXISTS Photos(
 				id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
 				title TEXT,
+				description TEXT,
 				album_id TEXT,
 				photo_id TEXT UNIQUE,
 				link TEXT UNIQUE
@@ -279,6 +280,9 @@ class photosets(object):
 		data = urllib.urlopen(url).read()
 		js = json.loads(data)
 
+		print js
+		print
+
 		if js["stat"] == "fail":
 			print "Fail Code: ", js["code"], " Message: ", js["message"]
 		elif js["stat"] == "ok":	#Successful
@@ -320,6 +324,8 @@ class photosets(object):
 		url = self.make_request(params)
 		data = urllib.urlopen(url).read()
 		js = json.loads(data)
+		print js
+		print
 
 		# Handle fail situation
 		if js["stat"] == "fail":

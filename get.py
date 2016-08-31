@@ -10,8 +10,8 @@ keys = login.get_appkeys()
 
 # Get user_id from login object
 user_id = login.get_userid()
-print "User id: ", user_id
-print
+#print "User id: ", user_id
+#print
 
 set_obj = flickr.photosets(token, True, 'json', None)
 #photoset_list = photoset.get_photoset_List(user_id)
@@ -28,7 +28,7 @@ def print_title(argument):
 		print i["title"]
 	print
 
-print_title(photoset_list)
+#print_title(photoset_list)
 
 def getAllPhotos():
 
@@ -40,7 +40,7 @@ def getAllPhotos():
 		# Store photos in database
 		set_obj.photoList_bySetid(user_id, album['id'])
 
-#getAllPhotos()
+getAllPhotos()
 
 def showSelector(album_list):
 
@@ -94,12 +94,15 @@ for i in photo_list["photo"]:
 '''
 
 def writeJSON(argument):
-	fp = open("Album.js","w")
+
+	print
+	save_name = raw_input("Enter desired file name - ") + ".js"
+	print
+
+	fp = open(save_name,"w")
 	json.dump(argument, fp, indent=4)
 
 	fp.close()
-
-#writeJSON(photo_list)
 
 def formatDict(arg):
 	format_final = {
