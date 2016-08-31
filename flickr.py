@@ -235,7 +235,6 @@ class photosets(object):
 		})
 
 		url = self.make_request(params)
-		#print url
 
 		print "Getting photoset lists......"
 		print
@@ -257,7 +256,6 @@ class photosets(object):
 				photoset_id = item["id"]
 				title = item["title"]["_content"]
 				description = item["description"]["_content"]
-				#print photoset_id, title, description
 
 				cur.execute('''
 					INSERT OR IGNORE INTO Albums (title, description, user_id, photoset_id)
@@ -276,40 +274,27 @@ class photosets(object):
 		})
 
 		url = self.make_request(params)
-		#print url
+
 		data = urllib.urlopen(url).read()
 		js = json.loads(data)
-
-		print js
-		print
 
 		if js["stat"] == "fail":
 			print "Fail Code: ", js["code"], " Message: ", js["message"]
 		elif js["stat"] == "ok":	#Successful
 
-			'''
-			photoset = dict()
-			photoset["title"] = js["photoset"]["title"]
-			photoset["photo"] = list()
-			'''
 			for item in js["photoset"]["photo"]:
 
-
-				"""
-				photoset["photo"].append({
-					"title": item["title"],
-					"id": item["id"]
-				})
-				"""
 				title = item["title"]
 				photo_id = item["id"]
 
 				cur.execute('''
 					INSERT OR IGNORE INTO Photos (title, album_id, photo_id)
 					VALUES (?, ?, ?)''', ( title, set_id, photo_id ) )
-			conn.commit()
 
-			#return photoset
+				conn.commit()
+
+				# Get photo infos for current photo
+				self.getInfo_byPhotoID(photo_id)
 
 	def getSize_byPhotoid(self, photo_id, size=0):
 
@@ -324,14 +309,12 @@ class photosets(object):
 		url = self.make_request(params)
 		data = urllib.urlopen(url).read()
 		js = json.loads(data)
-		print js
-		print
 
 		# Handle fail situation
 		if js["stat"] == "fail":
-			print "get size url fail."
+			print "Get photo url in size ", size, "fail."
 		elif js["stat"] == "ok":
-			print "Got photo urls in size ", size, "......"
+			print "Got photo url in size ", size, "......"
 
 			for item in js["sizes"]["size"]:
 				if int(item["width"]) == size and size != 0:
@@ -343,18 +326,42 @@ class photosets(object):
 			conn.commit()
 		return src
 
+	def getInfo_byPhotoID(self, photo_id):
+
+		params = self.parameters.copy()
+
+		# Update request variables
+		params.update({
+			"method": "flickr.photos.getInfo",
+			"photo_id": str(photo_id)
+		})
+
+		# Request call
+		url = self.make_request(params)
+		data = urllib.urlopen(url).read()
+		js = json.loads(data)
+
+		# Handle fail situation
+		if js["stat"] == "fail":
+			print "Get photo infos fail."
+		elif js["stat"] == "ok":
+			print "Got photo infos successfully!"
+
+			description = js["photo"]['description']['_content']
+
+			cur.execute('''
+				UPDATE Photos SET description = ? WHERE photo_id = ?''', (description, photo_id ) )
+			conn.commit()
+
 	def return_photosetList(self):
 
 		cur.execute('''SELECT id FROM Users WHERE user_id = ?''',(self.user_id, ) )
 		uid = cur.fetchone()[0]
-		print uid
+		print "User in database, id = ", uid
 
 		cur.execute('''SELECT * FROM Albums WHERE user_id = ?''',(uid, ) )
-		#result = cur.fetchall()
-		#print cur.fetchall()
+
 		result = list()
-		#print result
-		#print type(result)
 
 		for item in cur.fetchall():
 			result.append({
@@ -376,12 +383,14 @@ class photosets(object):
 
 		result["photos"] = list()
 
-		cur.execute('''SELECT photo_id, title FROM Photos WHERE album_id = ?''', (photoset_id, ) )
+		cur.execute('''SELECT title, description, photo_id FROM Photos WHERE album_id = ?''', (photoset_id, ) )
 
 		for item in cur.fetchall():
+
 			result["photos"].append({
-				"photo_id": item[0],
-				"title": item[1]
+				"title": item[0],
+				"description": item[1],
+				"photo_id": item[2]
 			})
 
 		return result
