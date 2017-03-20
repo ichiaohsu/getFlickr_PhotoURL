@@ -59,35 +59,36 @@ def formatDict(arg):
 	}
 	writeJSON(format_final)
 
+if __name__ == '__main__':
 
-user_name = raw_input("Enter user name - ")
+	user_name = raw_input("Enter user name - ")
 
-login = flickr.login(user_name)
+	login = flickr.login(user_name)
 
-token = login.get_usertokens()
-keys = login.get_appkeys()
+	token = login.get_usertokens()
+	keys = login.get_appkeys()
 
-# Get user_id from login object
-user_id = login.get_userid()
-print "login User: ", user_name, " id: ", user_id
-print
+	# Get user_id from login object
+	user_id = login.get_userid()
+	print "login User: ", user_name, " id: ", user_id
+	print
 
-# Initialization of a photoset object
-set_obj = flickr.photosets(token, True, 'json', None)
+	# Initialization of a photoset object
+	set_obj = flickr.photosets(token, True, 'json', None)
 
-# Get all photosets under the same author
-set_obj.photosetList_byUserid(user_id)
+	# Get all photosets under the same author
+	set_obj.photosetList_byUserid(user_id)
 
-photoset_list = set_obj.return_photosetList()
+	photoset_list = set_obj.return_photosetList()
 
-# Show selector to users and get list of chosen albums
-chosen_albumid = showSelector(photoset_list)
+	# Show selector to users and get list of chosen albums
+	chosen_albumid = showSelector(photoset_list)
 
-# Prepare all photo info needed in advance
-prepareChosenPhotos(chosen_albumid)
+	# Prepare all photo info needed in advance
+	prepareChosenPhotos(chosen_albumid)
 
-# Request direct link from flickr for each photos
-chosen_album = getChosenPhotoLink(chosen_albumid)
+	# Request direct link from flickr for each photos
+	chosen_album = getChosenPhotoLink(chosen_albumid)
 
-# Save JSON
-formatDict(chosen_album)
+	# Save JSON
+	formatDict(chosen_album)
